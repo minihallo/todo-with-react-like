@@ -1,9 +1,13 @@
+import { Component } from "../component/types";
+
 export interface VNode {
   type: string | Function;
   props: Record<string, any>;
   children: VNode[];
   key?: string | number;
   _dom?: HTMLElement | Text;
+  _instance?: Component;
+  _rendered?: VNode;
 }
 
 export type Props = {

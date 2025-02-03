@@ -1,4 +1,5 @@
 
+import { Component, ComponentType } from "../component/types";
 import { VNode } from "./types";
 
 export function reconcile(
@@ -21,6 +22,60 @@ export function reconcile(
   update(parentDom, oldVNode, newVNode);
 }
 
+function mountClassComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
+  const ComponentClass = vnode.type as ComponentType;
+  const instance = new ComponentClass(vnode.props);
+  
+  vnode._instance = instance;
+  instance._vnode = vnode;
+  
+  const renderedVNode = instance.render();
+  instance._rendered = renderedVNode;
+  const dom = mount(parentDom, renderedVNode);
+  
+  instance._dom = dom;
+  
+  if (instance.componentDidMount) {
+    instance.componentDidMount();
+  }
+  
+  return dom;
+}
+
+function updateClassComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
+  const instance = oldVNode._instance;
+  
+  // instance가 없는 경우 처리
+  if (!instance) {
+    unmount(oldVNode);
+    mount(parentDom, newVNode);
+    return;
+  }
+
+  const oldProps = instance.props;
+  
+  instance.props = newVNode.props;
+  
+  newVNode._instance = instance;
+  instance._vnode = newVNode;
+  
+  const oldRenderedVNode = instance._rendered;
+  const newRenderedVNode = instance.render();
+  
+  reconcile(parentDom, oldRenderedVNode, newRenderedVNode);
+  instance._rendered = newRenderedVNode;
+  
+  if (instance.componentDidUpdate) {
+    instance.componentDidUpdate(oldProps, instance.state);
+  }
+}
+
+export function render(vnode: VNode, container: HTMLElement) {
+  container.innerHTML = '';
+  
+  mount(container, vnode);
+}
+
 function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
   let dom: HTMLElement | Text;
 
@@ -28,10 +83,14 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
   if (vnode.type === "TEXT_ELEMENT") {
     dom = document.createTextNode(vnode.props.nodeValue);
   }
-  // 함수형 컴포넌트 처리
+  // 컴포넌트 처리
   else if (typeof vnode.type === "function") {
-    const component = vnode.type(vnode.props);
-    dom = mount(parentDom, component);
+    if (vnode.type.prototype instanceof Component) {
+      dom = mountClassComponent(parentDom, vnode);
+    } else {
+      const component = vnode.type(vnode.props);
+      dom = mount(parentDom, component);
+    }
   }
   else {
     dom = document.createElement(vnode.type as string);
@@ -82,6 +141,11 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
       oldVNode._dom!.nodeValue = newVNode.props.nodeValue;
     }
     newVNode._dom = oldVNode._dom;
+    return;
+  }
+
+  if (typeof newVNode.type === "function" && newVNode.type.prototype instanceof Component) {
+    updateClassComponent(parentDom, oldVNode, newVNode);
     return;
   }
 
