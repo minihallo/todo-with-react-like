@@ -3,34 +3,80 @@ type Listener = () => void;
 class GlobalState {
   private store: Map<string, any> = new Map();
   private listeners: Map<string, Set<Listener>> = new Map();
+  private pendingUpdates: Set<string> = new Set();
+  private isProcessingUpdates = false;
 
   setState(key: string, newValue: any) {
-    console.log('setState:', { key, oldValue: this.store.get(key), newValue});
-
     const oldValue = this.store.get(key);
     if (oldValue !== newValue) {
       this.store.set(key, newValue);
-      console.log('notify listeners:', this.listeners.get(key)?.size);
-      this.listeners.get(key)?.forEach((listener) => listener());
+      this.pendingUpdates.add(key);
+      this.scheduleUpdate();
+    }
+  }
+
+  private scheduleUpdate() {
+    if (!this.isProcessingUpdates) {
+      this.isProcessingUpdates = true;
+      Promise.resolve().then(() => {
+        this.processPendingUpdates();
+      });
+    }
+  }
+
+  private processPendingUpdates() {
+    const updatedKeys = Array.from(this.pendingUpdates);
+    this.pendingUpdates.clear();
+    this.isProcessingUpdates = false;
+
+    // 모든 변경된 키에 대한 리스너를 한번에 실행
+    const affectedListeners = new Set<Listener>();
+    updatedKeys.forEach(key => {
+      const listeners = this.listeners.get(key);
+      if (listeners) {
+        listeners.forEach(listener => affectedListeners.add(listener));
+      }
+    });
+
+    affectedListeners.forEach(listener => listener());
+  }
+
+  private shouldUpdate(oldValue: any, newValue: any): boolean {
+    if (oldValue === newValue) return false;
+    if (Array.isArray(oldValue) && Array.isArray(newValue)) {
+      return JSON.stringify(oldValue) !== JSON.stringify(newValue);
+    }
+    return true;
+  }
+
+  private notifyListeners(key: string) {
+    const listeners = this.listeners.get(key);
+    if (listeners) {
+      Promise.resolve().then(() => {
+        listeners.forEach(listener => {
+          listener();
+        });
+      });
     }
   }
 
   getState(key: string) {
-    console.log('getState:', { key, value: this.store.get(key) });
     return this.store.get(key);
   }
 
   subscribe(key: string, listener: Listener) {
-    console.log('subscribe:', { key, listenersCount: this.listeners.get(key)?.size || 0 });
     if (!this.listeners.has(key)) {
       this.listeners.set(key, new Set());
     }
     this.listeners.get(key)!.add(listener);
 
     return () => {
-      this.listeners.get(key)?.delete(listener);
-      if (this.listeners.get(key)?.size === 0) {
-        this.listeners.delete(key);
+      const listeners = this.listeners.get(key);
+      if (listeners) {
+        listeners.delete(listener);
+        if (listeners.size === 0) {
+          this.listeners.delete(key);
+        }
       }
     };
   }

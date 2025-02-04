@@ -1,4 +1,5 @@
 import App from "./App";
+import AppForGlobalState from "./AppForGlobalState";
 import { render, createElement } from "./lib";
 
 const root = document.getElementById('app');

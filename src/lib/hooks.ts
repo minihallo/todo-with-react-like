@@ -14,7 +14,6 @@ function scheduleComponentUpdate(instance: FunctionComponentInstance) {
       const newVNode = componentFunction(props);
   
       reconcile(parentDom, oldVNode, newVNode);
-  
       instance._vnode = newVNode;
     });
   }
@@ -34,7 +33,6 @@ export function useState<T>(
   const instance = currentInstance;
   const index = currentIndex++;
 
-  // 초기 상태 설정
   if (currentInstance.hooks[index] === undefined) {
     currentInstance.hooks[index] = {
       type: "state",
@@ -72,7 +70,6 @@ export function useEffect(callback: () => void | (() => void), deps?: any[]) {
   const hooks = currentInstance.hooks;
 
   if (!hooks[index] || !deps || !arraysEqual(hooks[index].deps, deps)) {
-    // 이전 cleanup 실행
     if (hooks[index]?.cleanup) {
       hooks[index].cleanup();
     }
@@ -83,7 +80,6 @@ export function useEffect(callback: () => void | (() => void), deps?: any[]) {
       cleanup: undefined,
     };
 
-    // 새로운 effect 예약
     Promise.resolve().then(() => {
       const cleanup = callback();
       hooks[index].cleanup =
@@ -119,25 +115,27 @@ export function useGlobalState<T>(
     throw new Error("useGlobalState must be used within a function component");
   }
 
-  console.log('useGlobalState 호출 시점의 currentInstance:', currentInstance?.type.name);
-
-  if (globalState.getState(key) === undefined) {
-    globalState.setState(key, initialValue);
-  }
-
-  const [state, setState] = useState(globalState.getState(key));
+  const [state, setState] = useState<T>(
+    globalState.getState(key) ?? initialValue
+  );
 
   useEffect(() => {
-    const updateState = setState;
-    return globalState.subscribe(key, () => {
-      updateState(globalState.getState(key));
+    if (globalState.getState(key) === undefined) {
+      globalState.setState(key, initialValue);
+    }
+
+    const unsubscribe = globalState.subscribe(key, () => {
+      const newValue = globalState.getState(key);
+      setState(newValue);
     });
+
+    return unsubscribe;
   }, [key]);
 
-  const updateState = (value: T) => {
-    globalState.setState(key, value);
+  const updateState = (newValue: T) => {
+    globalState.setState(key, newValue);
   };
-  
+
   return [state, updateState];
 }
 
