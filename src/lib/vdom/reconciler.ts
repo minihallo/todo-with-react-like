@@ -1,5 +1,7 @@
 
+import { ComponentInstance } from "../component/instance";
 import { Component, ComponentType } from "../component/types";
+import { resetHooksState } from "../hooks";
 import { VNode } from "./types";
 
 export function reconcile(
@@ -45,7 +47,6 @@ function mountClassComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement 
 function updateClassComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
   const instance = oldVNode._instance;
   
-  // instance가 없는 경우 처리
   if (!instance) {
     unmount(oldVNode);
     mount(parentDom, newVNode);
@@ -70,10 +71,52 @@ function updateClassComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode:
   }
 }
 
-export function render(vnode: VNode, container: HTMLElement) {
-  container.innerHTML = '';
+function mountFunctionComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
+  const componentFunction = vnode.type as Function;
   
-  mount(container, vnode);
+  const instance = ComponentInstance.createInstance(
+    componentFunction,
+    vnode.props,
+    parentDom
+  );
+  
+  resetHooksState(instance);
+  
+  const renderedVNode = componentFunction(vnode.props);
+  
+  const dom = mount(parentDom, renderedVNode);
+  
+  vnode._dom = dom;
+  instance._vnode = renderedVNode;
+
+  return dom;
+}
+
+function updateFunctionComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
+  const componentFunction = newVNode.type as Function;
+  const instance = ComponentInstance.getInstance(componentFunction);
+  
+  if (!instance) {
+    unmount(oldVNode);
+    mountFunctionComponent(parentDom, newVNode);
+    return;
+  }
+
+  instance.props = newVNode.props;
+  
+  resetHooksState(instance);
+  const newRenderedVNode = componentFunction(newVNode.props);
+  
+  reconcile(parentDom, instance._vnode, newRenderedVNode);
+  
+  instance._vnode = newRenderedVNode;
+  newVNode._dom = oldVNode._dom;
+}
+
+export function render(vnode: VNode, container: HTMLElement) {
+  const oldVNode = container._vnode;
+  reconcile(container, oldVNode || null, vnode);
+  container._vnode = vnode;
 }
 
 function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
@@ -88,8 +131,7 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
     if (vnode.type.prototype instanceof Component) {
       dom = mountClassComponent(parentDom, vnode);
     } else {
-      const component = vnode.type(vnode.props);
-      dom = mount(parentDom, component);
+      dom = mountFunctionComponent(parentDom, vnode);
     }
   }
   else {
@@ -144,8 +186,12 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
     return;
   }
 
-  if (typeof newVNode.type === "function" && newVNode.type.prototype instanceof Component) {
-    updateClassComponent(parentDom, oldVNode, newVNode);
+  if (typeof newVNode.type === "function") {
+    if (newVNode.type.prototype instanceof Component) {
+      updateClassComponent(parentDom, oldVNode, newVNode);
+    } else {
+      updateFunctionComponent(parentDom, oldVNode, newVNode);
+    }
     return;
   }
 

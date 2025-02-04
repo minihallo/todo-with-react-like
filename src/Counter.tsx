@@ -1,30 +1,25 @@
-import { Component, createElement } from './lib';
+import { useState, useEffect, useMemo, createElement } from './lib';
 
-class Counter extends Component<{}, { count: number }> {
-  state = { count: 0 };
+export default function Counter() {
+  const [count, setCount] = useState(0);
+  
+  const doubleCount = useMemo(() => {
+    console.log('Calculating double...');
+    return count * 2;
+  }, [count]);
 
-  increment = () => {
-    this.setState(prevState => ({
-      count: prevState.count + 1
-    }));
-  };
+  useEffect(() => {
+    console.log('Count changed to:', count);
+    return () => {
+      console.log('Cleaning up with count:', count);
+    };
+  }, [count]);
 
-  componentDidMount() {
-    console.log('Counter mounted!');
-  }
-
-  componentDidUpdate(prevProps: {}, prevState: { count: number }) {
-    console.log('Count changed from', prevState.count, 'to', this.state.count);
-  }
-
-  render() {
-    return (
-      <div className="counter">
-        <h1>Count: {this.state.count}</h1>
-        <button onClick={this.increment}>Increment</button>
-      </div>
-    );
-  }
+  return (
+    <div className="counter">
+      <h1>Count: {count}</h1>
+      <p>Double: {doubleCount}</p>
+      <button onClick={() => setCount(prev => prev + 1)}>Increment</button>
+    </div>
+  );
 }
-
-export default Counter;

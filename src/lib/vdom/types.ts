@@ -1,5 +1,11 @@
 import { Component } from "../component/types";
 
+declare global {
+  interface HTMLElement {
+    _vnode?: VNode | null;
+  }
+}
+
 export interface VNode {
   type: string | Function;
   props: Record<string, any>;
