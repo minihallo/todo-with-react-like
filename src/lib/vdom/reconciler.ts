@@ -1,4 +1,3 @@
-
 import { ComponentInstance } from "../component/instance";
 import { Component, ComponentType } from "../component/types";
 import { resetHooksState } from "../hooks";
@@ -24,29 +23,36 @@ export function reconcile(
   update(parentDom, oldVNode, newVNode);
 }
 
-function mountClassComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
+function mountClassComponent(
+  parentDom: HTMLElement,
+  vnode: VNode
+): HTMLElement | Text {
   const ComponentClass = vnode.type as ComponentType;
   const instance = new ComponentClass(vnode.props);
-  
+
   vnode._instance = instance;
   instance._vnode = vnode;
-  
+
   const renderedVNode = instance.render();
   instance._rendered = renderedVNode;
   const dom = mount(parentDom, renderedVNode);
-  
+
   instance._dom = dom;
-  
+
   if (instance.componentDidMount) {
     instance.componentDidMount();
   }
-  
+
   return dom;
 }
 
-function updateClassComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
+function updateClassComponent(
+  parentDom: HTMLElement,
+  oldVNode: VNode,
+  newVNode: VNode
+) {
   const instance = oldVNode._instance;
-  
+
   if (!instance) {
     unmount(oldVNode);
     mount(parentDom, newVNode);
@@ -54,48 +60,58 @@ function updateClassComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode:
   }
 
   const oldProps = instance.props;
-  
+
   instance.props = newVNode.props;
-  
+
   newVNode._instance = instance;
   instance._vnode = newVNode;
-  
+
   const oldRenderedVNode = instance._rendered;
   const newRenderedVNode = instance.render();
-  
+
   reconcile(parentDom, oldRenderedVNode, newRenderedVNode);
   instance._rendered = newRenderedVNode;
-  
+
   if (instance.componentDidUpdate) {
     instance.componentDidUpdate(oldProps, instance.state);
   }
 }
 
-function mountFunctionComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
+function mountFunctionComponent(
+  parentDom: HTMLElement,
+  vnode: VNode
+): HTMLElement | Text {
   const componentFunction = vnode.type as Function;
-  
+
   const instance = ComponentInstance.createInstance(
     componentFunction,
     vnode.props,
     parentDom
   );
-  
+
   resetHooksState(instance);
-  
+
   const renderedVNode = componentFunction(vnode.props);
-  
+
   const dom = mount(parentDom, renderedVNode);
-  
+
   vnode._dom = dom;
   instance._vnode = renderedVNode;
 
   return dom;
 }
 
-function updateFunctionComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
+function updateFunctionComponent(
+  parentDom: HTMLElement,
+  oldVNode: VNode,
+  newVNode: VNode
+) {
   const componentFunction = newVNode.type as Function;
-  const instance = ComponentInstance.getInstance(componentFunction);
-  
+  const instance = ComponentInstance.getInstance(
+    componentFunction,
+    newVNode.props
+  );
+
   if (!instance) {
     unmount(oldVNode);
     mountFunctionComponent(parentDom, newVNode);
@@ -103,12 +119,12 @@ function updateFunctionComponent(parentDom: HTMLElement, oldVNode: VNode, newVNo
   }
 
   instance.props = newVNode.props;
-  
+
   resetHooksState(instance);
   const newRenderedVNode = componentFunction(newVNode.props);
-  
+
   reconcile(parentDom, instance._vnode, newRenderedVNode);
-  
+
   instance._vnode = newRenderedVNode;
   newVNode._dom = oldVNode._dom;
 }
@@ -133,8 +149,7 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
     } else {
       dom = mountFunctionComponent(parentDom, vnode);
     }
-  }
-  else {
+  } else {
     dom = document.createElement(vnode.type as string);
 
     Object.entries(vnode.props).forEach(([name, value]) => {
@@ -143,6 +158,8 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
       } else if (name.startsWith("on")) {
         const eventType = name.toLowerCase().substring(2);
         (dom as HTMLElement).addEventListener(eventType, value);
+      } else if (name === "value" && dom instanceof HTMLInputElement) {
+        dom.value = value;
       } else if (name !== "children" && name !== "key") {
         (dom as HTMLElement).setAttribute(name, value);
       }
@@ -211,16 +228,50 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
     } else if (name.startsWith("on")) {
       const eventType = name.toLowerCase().substring(2);
       dom.addEventListener(eventType, value);
+    } else if (name === "value" && dom instanceof HTMLInputElement) {
+      dom.value = value;
     } else if (name !== "children" && name !== "key") {
       dom.setAttribute(name, value);
     }
   });
 
-  const maxLength = Math.max(
-    oldVNode.children.length,
-    newVNode.children.length
-  );
-  for (let i = 0; i < maxLength; i++) {
-    reconcile(dom, oldVNode.children[i] || null, newVNode.children[i] || null);
-  }
+  const oldChildren = oldVNode.children;
+  const newChildren = newVNode.children;
+  
+  const oldChildrenMap = new Map();
+  oldChildren.forEach((child, i) => {
+    const key = child.props.key ?? i;
+    oldChildrenMap.set(key, child);
+  });
+
+  let previousSibling: Node | null = null;
+  newChildren.forEach((newChild, newIndex) => {
+    const key = newChild.props.key ?? newIndex;
+    const oldChild = oldChildrenMap.get(key);
+    
+    if (oldChild) {
+      reconcile(dom, oldChild, newChild);
+      if (newChild._dom) {
+        if (previousSibling && previousSibling.nextSibling !== newChild._dom) {
+          dom.insertBefore(newChild._dom, previousSibling.nextSibling);
+        }
+        previousSibling = newChild._dom;
+      }
+      oldChildrenMap.delete(key);
+    } else {
+      mount(dom, newChild);
+      if (newChild._dom) {
+        if (previousSibling) {
+          dom.insertBefore(newChild._dom, previousSibling.nextSibling);
+        } else {
+          dom.insertBefore(newChild._dom, dom.firstChild);
+        }
+        previousSibling = newChild._dom;
+      }
+    }
+  });
+
+  oldChildrenMap.forEach(remainingChild => {
+    unmount(remainingChild);
+  });
 }

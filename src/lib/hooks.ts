@@ -115,18 +115,13 @@ export function useGlobalState<T>(
     throw new Error("useGlobalState must be used within a function component");
   }
 
-  const [state, setState] = useState<T>(
-    globalState.getState(key) ?? initialValue
-  );
+  const value = globalState.getState(key) ?? initialValue;
+
+  const [, forceUpdate] = useState({});
 
   useEffect(() => {
-    if (globalState.getState(key) === undefined) {
-      globalState.setState(key, initialValue);
-    }
-
     const unsubscribe = globalState.subscribe(key, () => {
-      const newValue = globalState.getState(key);
-      setState(newValue);
+      forceUpdate({});
     });
 
     return unsubscribe;
@@ -136,7 +131,7 @@ export function useGlobalState<T>(
     globalState.setState(key, newValue);
   };
 
-  return [state, updateState];
+  return [value, updateState];
 }
 
 function arraysEqual(a: any[] | undefined, b: any[] | undefined): boolean {
