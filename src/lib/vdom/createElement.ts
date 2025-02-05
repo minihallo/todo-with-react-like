@@ -1,4 +1,3 @@
-
 import { VNode, Props } from "./types";
 
 export function createElement(
@@ -11,11 +10,21 @@ export function createElement(
     props: props || {},
     children: children
       .flat()
-      .map((child) =>
-        typeof child === "string" || typeof child === "number"
-          ? createTextElement(child)
-          : child
-      ),
+      .map((child) => {
+        if (
+          child === false ||
+          child === true ||
+          child === null ||
+          child === undefined
+        ) {
+          return createTextElement("");
+        }
+        if (typeof child === "string" || typeof child === "number") {
+          return createTextElement(child);
+        }
+        return child;
+      })
+      .filter(Boolean), // null, undefined 필터링
     key: props?.key,
   };
 }
