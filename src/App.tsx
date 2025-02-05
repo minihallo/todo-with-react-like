@@ -7,13 +7,11 @@ import { createElement, useState, useMemo, useGlobalState, useEffect } from "./l
 import { ITodoItem, ITreeTodoItem } from "./types";
 import { convertToTree } from "./utils/treeUtils";
 
-interface AppProps {
-}
 
-export default function App({}: AppProps) {
+export default function App() {
   const [todos, setTodos] = useGlobalState<ITodoItem[]>("todos", []);
   const [isLoading, setIsLoading] = useGlobalState<boolean>("isLoading", false);
-  // const [error, setError] = useGlobalState<string | null>("error", null);
+  const [error, setError] = useGlobalState<string | null>("error", null);
 
   useEffect(() => {
     const fetchTodos = async () => {
@@ -22,7 +20,7 @@ export default function App({}: AppProps) {
         const fetchedTodos = await todoApi.fetchTodos();
         setTodos(fetchedTodos);
       } catch (err) {
-        // setError(err instanceof Error ? err.message : 'Unknown error occurred');
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
       } finally {
         setIsLoading(false);
       }
@@ -36,13 +34,8 @@ export default function App({}: AppProps) {
     [todos]
   );
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  // if (error) {
-  //   return <div className="text-red-500">Error: {error}</div>;
-  // }
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div className="text-red-500">Error: {error}</div>
 
   return (
     <div className="max-w-4xl mx-auto p-6">
