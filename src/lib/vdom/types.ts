@@ -14,10 +14,12 @@ export interface VNode {
   _dom?: HTMLElement | Text;
   _instance?: Component;
   _rendered?: VNode;
+  ref?: (element: HTMLElement | null) => void;
 }
 
 export type Props = {
   children?: VNode[];
   key?: string | number;
   [key: string]: any;
+  ref?: (element: HTMLElement | null) => void;
 };

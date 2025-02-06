@@ -5,9 +5,16 @@ export function createElement(
   props: Props | null,
   ...children: any[]
 ): VNode {
+  const processedProps = { ...(props || {}) };
+  const ref = props?.ref;
+  
+  if ('ref' in processedProps) {
+    delete processedProps.ref;
+  }
+
   return {
     type,
-    props: props || {},
+    props: processedProps,
     children: children
       .flat()
       .map((child) => {
@@ -24,8 +31,9 @@ export function createElement(
         }
         return child;
       })
-      .filter(Boolean), // null, undefined 필터링
+      .filter(Boolean),
     key: props?.key,
+    ref: ref,
   };
 }
 

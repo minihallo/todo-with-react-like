@@ -168,6 +168,10 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
     vnode.children.forEach((child) => mount(dom as HTMLElement, child));
   }
 
+  if (vnode.ref && typeof vnode.ref === "function") {
+    vnode.ref(dom as HTMLElement);
+  }
+
   vnode._dom = dom;
   parentDom.appendChild(dom);
   return dom;
@@ -175,6 +179,10 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
 
 function unmount(vnode: VNode) {
   if (!vnode._dom) return;
+
+  if (vnode.ref) {
+    vnode.ref(null);
+  }
 
   Object.entries(vnode.props).forEach(([name, value]) => {
     if (name.startsWith("on")) {
@@ -215,6 +223,15 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
   const dom = oldVNode._dom as HTMLElement;
   newVNode._dom = dom;
 
+  if (oldVNode.ref !== newVNode.ref) {
+    if (oldVNode.ref) {
+      oldVNode.ref(null);
+    }
+    if (newVNode.ref) {
+      newVNode.ref(dom);
+    }
+  }
+
   Object.keys(oldVNode.props).forEach((name) => {
     if (name.startsWith("on")) {
       const eventType = name.toLowerCase().substring(2);
@@ -237,7 +254,7 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
 
   const oldChildren = oldVNode.children;
   const newChildren = newVNode.children;
-  
+
   const oldChildrenMap = new Map();
   oldChildren.forEach((child, i) => {
     const key = child.props.key ?? i;
@@ -248,7 +265,7 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
   newChildren.forEach((newChild, newIndex) => {
     const key = newChild.props.key ?? newIndex;
     const oldChild = oldChildrenMap.get(key);
-    
+
     if (oldChild) {
       reconcile(dom, oldChild, newChild);
       if (newChild._dom) {
@@ -271,7 +288,7 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
     }
   });
 
-  oldChildrenMap.forEach(remainingChild => {
+  oldChildrenMap.forEach((remainingChild) => {
     unmount(remainingChild);
   });
 }
