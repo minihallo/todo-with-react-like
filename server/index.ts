@@ -22,12 +22,12 @@ app.use(express.json());
 const generateTodos = (count: number): TodoItem[] => {
   const todoList: TodoItem[] = [];
   for (let i = 1; i <= count; i++) {
-    const parent = i === 1 ? null : Math.floor(i / 10);
-
+    const parentId = i <= 10 ? null : Math.floor(i / 10);
+    
     todoList.push({
       id: i,
       content: `Task ${i}`,
-      parentId: parent,
+      parentId,
       completed: false,
     });
   }
