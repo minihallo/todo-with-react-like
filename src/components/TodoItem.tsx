@@ -1,19 +1,24 @@
 import { todoApi } from "../api";
-import { createElement, useGlobalState, useMemo, useState } from "../lib";
+import { createElement, useEffect, useGlobalState, useMemo, useState } from "../lib";
 import { ITodoItem, ITreeTodoItem } from "../types";
 
 interface TodoItemProps {
   key?: number;
   todo: ITreeTodoItem;
-  level?: number;
+  expandedItems: Set<number>;
+  onToggleExpand: () => void;
 }
 
-export default function TodoItem({ todo, level = 0 }: TodoItemProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export default function TodoItem({
+  todo,
+  onToggleExpand,
+  expandedItems,
+}: TodoItemProps) {
   const [todos, setTodos] = useGlobalState<ITodoItem[]>("todos", []);
-  const [error, setError] = useGlobalState<string | null>("error", null);
+  // const [error, setError] = useGlobalState<string | null>("error", null);
   const [isAddingSubTask, setIsAddingSubTask] = useState(false);
   const [newSubTaskContent, setNewSubTaskContent] = useState("");
+  const [isCompleted, setIsCompleted] = useState(todo.completed);
 
   const handleAddSubTask = () => {
     setIsAddingSubTask(true);
@@ -33,22 +38,20 @@ export default function TodoItem({ todo, level = 0 }: TodoItemProps) {
       setTodos([...todos, newSubTodo]);
       setNewSubTaskContent("");
       setIsAddingSubTask(false);
-      setIsExpanded(true);
+      onToggleExpand();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      // setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
   };
 
   const handleToggle = async (e: Event) => {
     try {
       const updatedTodo = await todoApi.updateTodo(todo.id, {
-        completed: !todo.completed,
+        completed: !isCompleted,
       });
-      setTodos(
-        todos.map((t) => (t.id === todo.id ? { ...t, ...updatedTodo } : t))
-      );
+      setIsCompleted(updatedTodo.completed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      // setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
   };
 
@@ -57,47 +60,36 @@ export default function TodoItem({ todo, level = 0 }: TodoItemProps) {
       await todoApi.deleteTodo(todo.id);
       setTodos(todos.filter((t) => t.id !== todo.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      // setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
   };
 
   const handleExpandClick = (e: Event) => {
-    setIsExpanded(!isExpanded);
+    e.stopPropagation();
+    onToggleExpand();
   };
-
-  const childrenContent = useMemo(() => {
-    if (!isExpanded || todo.children.length === 0) return null;
-
-    return (
-      <div className="pl-8 mt-2">
-        {todo.children.map((child) => (
-          <TodoItem key={child.id} todo={child} level={level + 1} />
-        ))}
-      </div>
-    );
-  }, [isExpanded, todo.children, level]);
 
   return (
     <div className="todo-item">
       <div
-        className="flex items-center gap-2 py-2 hover:bg-gray-50"
-        style={{ paddingLeft: `${level * 24}px` }}
+        className="flex items-center gap-2 py-2 hover:bg-gray-50 ml-4"
+        style={{ paddingLeft: `${todo.level * 24}px` }}
       >
         {todo.children.length > 0 && (
           <button
             onClick={handleExpandClick}
             className="p-1 hover:bg-gray-200 rounded"
           >
-            {isExpanded ? "▼" : "▶"}
+            {expandedItems.has(todo.id) ? "▼" : "▶"}{" "}
           </button>
         )}
         <input
           type="checkbox"
-          checked={todo.completed}
+          checked={isCompleted}
           onChange={handleToggle}
           className="w-4 h-4"
         />
-        <span className={todo.completed ? "line-through text-gray-500" : ""}>
+        <span className={isCompleted ? "line-through text-gray-500" : ""}>
           {todo.content}
         </span>
         <button
@@ -108,7 +100,7 @@ export default function TodoItem({ todo, level = 0 }: TodoItemProps) {
         </button>
         <button
           onClick={handleDelete}
-          className="ml-auto p-1 text-red-500 hover:bg-red-50 rounded"
+          className="ml-auto p-1 text-red-500 hover:bg-red-50 rounded mr-4"
         >
           🗑
         </button>
@@ -117,7 +109,7 @@ export default function TodoItem({ todo, level = 0 }: TodoItemProps) {
       {isAddingSubTask && (
         <div
           className="flex items-center gap-2 mt-2 pl-4"
-          style={{ paddingLeft: `${(level + 1) * 24}px` }}
+          style={{ paddingLeft: `${(todo.level + 1) * 24}px` }}
         >
           <input
             type="text"
@@ -143,8 +135,6 @@ export default function TodoItem({ todo, level = 0 }: TodoItemProps) {
           </button>
         </div>
       )}
-
-      {childrenContent}
     </div>
   );
 }

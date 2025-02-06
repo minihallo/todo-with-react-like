@@ -6,5 +6,6 @@ export interface ITodoItem {
 }
 
 export interface ITreeTodoItem extends ITodoItem {
+  level: number;
   children: ITreeTodoItem[];
 }

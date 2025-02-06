@@ -1,26 +1,34 @@
 import { ITodoItem, ITreeTodoItem } from "../types";
 
-export const convertToTree = (todos: ITodoItem[]): ITreeTodoItem[] => {
-  const map = new Map<number, ITreeTodoItem>();
-  const roots: ITreeTodoItem[] = [];
-
-  // First pass: Create TreeTodoItems and store in map
-  todos.forEach(todo => {
-    map.set(todo.id, { ...todo, children: [] });
+export function convertToTree(items: ITodoItem[]): ITreeTodoItem[] {
+  const itemMap = new Map<number, ITreeTodoItem>();
+  
+  items.forEach(item => {
+    itemMap.set(item.id, {
+      ...item,
+      level: 0,
+      children: []
+    });
   });
-
-  // Second pass: Build relationships
-  todos.forEach(todo => {
-    const node = map.get(todo.id)!;
-    if (todo.parentId === null) {
-      roots.push(node);
+  
+  const rootItems: ITreeTodoItem[] = [];
+  
+  items.forEach(item => {
+    const treeItem = itemMap.get(item.id);
+    if (!treeItem) return;
+    
+    if (item.parentId === null) {
+      rootItems.push(treeItem);
     } else {
-      const parent = map.get(todo.parentId);
-      if (parent) {
-        parent.children.push(node);
+      const parentItem = itemMap.get(item.parentId);
+      if (parentItem) {
+        parentItem.children.push(treeItem);
+        treeItem.level = parentItem.level + 1;
+      } else {
+        rootItems.push(treeItem);
       }
     }
   });
-
-  return roots;
-};
+  
+  return rootItems;
+}
