@@ -160,6 +160,8 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
         (dom as HTMLElement).addEventListener(eventType, value);
       } else if (name === "value" && dom instanceof HTMLInputElement) {
         dom.value = value;
+      } else if (name === "checked" && dom instanceof HTMLInputElement) {
+        dom.checked = value;
       } else if (name === "style" && typeof value === "object") {
         Object.entries(value).forEach(([styleName, styleValue]) => {
           (dom as HTMLElement).style.setProperty(
@@ -263,6 +265,8 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
       dom.addEventListener(eventType, value);
     } else if (name === "value" && dom instanceof HTMLInputElement) {
       dom.value = value;
+    } else if (name === "checked" && dom instanceof HTMLInputElement) {
+      dom.checked = value;
     } else if (name === "style" && typeof value === "object") {
       Object.entries(value).forEach(([styleName, styleValue]) => {
         (dom as HTMLElement).style.setProperty(
