@@ -160,6 +160,13 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
         (dom as HTMLElement).addEventListener(eventType, value);
       } else if (name === "value" && dom instanceof HTMLInputElement) {
         dom.value = value;
+      } else if (name === "style" && typeof value === "object") {
+        Object.entries(value).forEach(([styleName, styleValue]) => {
+          (dom as HTMLElement).style.setProperty(
+            styleName.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`),
+            String(styleValue)
+          );
+        });
       } else if (name !== "children" && name !== "key") {
         (dom as HTMLElement).setAttribute(name, value);
       }
@@ -188,6 +195,15 @@ function unmount(vnode: VNode) {
     if (name.startsWith("on")) {
       const eventType = name.toLowerCase().substring(2);
       vnode._dom?.removeEventListener(eventType, value);
+    } else if (name === "style" && vnode._dom) {
+      const style = vnode.props.style;
+      if (typeof style === "object") {
+        Object.keys(style).forEach(styleName => {
+          (vnode._dom as HTMLElement).style.removeProperty(
+            styleName.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
+          );
+        });
+      }
     }
   });
 
@@ -247,6 +263,13 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
       dom.addEventListener(eventType, value);
     } else if (name === "value" && dom instanceof HTMLInputElement) {
       dom.value = value;
+    } else if (name === "style" && typeof value === "object") {
+      Object.entries(value).forEach(([styleName, styleValue]) => {
+        (dom as HTMLElement).style.setProperty(
+          styleName.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`),
+          String(styleValue)
+        );
+      });
     } else if (name !== "children" && name !== "key") {
       dom.setAttribute(name, value);
     }
