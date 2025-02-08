@@ -2,7 +2,7 @@ import { todoApi } from "../api";
 import { useState, useGlobalState, createElement } from "../lib";
 import { ITodoItem } from "../types";
 
-export default function TodoForm({ parentId = null }) {
+export default function TodoForm() {
   const [content, setContent] = useState('');
   const [todos, setTodos] = useGlobalState<ITodoItem[]>('todos', []);
   const [error, setError] = useGlobalState<string | null>('error', null);
@@ -12,7 +12,7 @@ export default function TodoForm({ parentId = null }) {
     if (!content.trim()) return;
 
     try {
-      const newTodo = await todoApi.addTodo(content, parentId);
+      const newTodo = await todoApi.addTodo(content, null);
       setTodos([...todos, newTodo]);
       setContent('');
     } catch (err) {

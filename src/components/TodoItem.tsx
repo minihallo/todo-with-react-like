@@ -1,5 +1,5 @@
 import { todoApi } from "../api";
-import { createElement, useEffect, useGlobalState, useMemo, useState } from "../lib";
+import { createElement, useEffect, useGlobalState, useMemo, useRef, useState } from "../lib";
 import { ITodoItem, ITreeTodoItem } from "../types";
 
 interface TodoItemProps {
@@ -7,11 +7,13 @@ interface TodoItemProps {
   todo: ITreeTodoItem;
   expandedItems: Set<number>;
   onToggleExpand: () => void;
+  onUpdateTodo: (todoId: number, updates: Partial<ITodoItem>) => Promise<void>;
 }
 
 export default function TodoItem({
   todo,
   onToggleExpand,
+  onUpdateTodo,
   expandedItems,
 }: TodoItemProps) {
   const [todos, setTodos] = useGlobalState<ITodoItem[]>("todos", []);
@@ -50,6 +52,9 @@ export default function TodoItem({
         completed: !isCompleted,
       });
       setIsCompleted(updatedTodo.completed);
+      onUpdateTodo(todo.id, {
+        completed: !isCompleted,
+      });
     } catch (err) {
       // setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
@@ -57,8 +62,24 @@ export default function TodoItem({
 
   const handleDelete = async (e: Event) => {
     try {
-      await todoApi.deleteTodo(todo.id);
-      setTodos(todos.filter((t) => t.id !== todo.id));
+      const getDeleteIds = (todoId: number): number[] => {
+        const ids: number[] = [todoId];
+        const findChildren = (parentId: number) => {
+          const children = todos.filter((t) => t.parentId === parentId);
+          children.forEach((child) => {
+            ids.push(child.id);
+            findChildren(child.id);
+          });
+        };
+
+        findChildren(todoId);
+        return ids;
+      };
+
+      const deleteIds = getDeleteIds(todo.id);
+
+      await Promise.all(deleteIds.map((id) => todoApi.deleteTodo(id)));
+      setTodos(todos.filter((t) => !deleteIds.includes(t.id)));
     } catch (err) {
       // setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
@@ -75,28 +96,20 @@ export default function TodoItem({
         className="flex items-center gap-2 py-2 hover:bg-gray-50 ml-4"
         style={{ paddingLeft: `${todo.level * 24}px` }}
       >
-        {todo.children.length > 0 && (
-          <button
-            onClick={handleExpandClick}
-            className="p-1 hover:bg-gray-200 rounded"
-          >
-            {expandedItems.has(todo.id) ? "▼" : "▶"}{" "}
-          </button>
-        )}
-        <input
-          type="checkbox"
-          checked={isCompleted}
-          onChange={handleToggle}
-          className="w-4 h-4"
-        />
-        <span className={isCompleted ? "line-through text-gray-500" : ""}>
-          {todo.content}
-        </span>
+        <div className="w-6">
+          {todo.children.length > 0 && (
+            <button onClick={handleExpandClick} className="p-1 hover:bg-gray-200 rounded">
+              {expandedItems.has(todo.id) ? "▼" : "▶"}
+            </button>
+          )}
+        </div>
+        <input type="checkbox" checked={isCompleted} onChange={handleToggle} className="w-4 h-4" />
+        <span className={isCompleted ? "line-through text-gray-500" : ""}>{todo.content}</span>
         <button
           onClick={handleAddSubTask}
           className="ml-2 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
         >
-          + 서브태스크
+          + 하위작업 추가
         </button>
         <button
           onClick={handleDelete}
@@ -114,9 +127,7 @@ export default function TodoItem({
           <input
             type="text"
             value={newSubTaskContent}
-            onChange={(e: Event) =>
-              setNewSubTaskContent((e.target as HTMLInputElement).value)
-            }
+            onChange={(e: Event) => setNewSubTaskContent((e.target as HTMLInputElement).value)}
             placeholder="새 하위작업 입력..."
             className="flex-1 p-2 border rounded"
             autoFocus
