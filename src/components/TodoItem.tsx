@@ -21,9 +21,13 @@ export default function TodoItem({
   const [isAddingSubTask, setIsAddingSubTask] = useState(false);
   const [newSubTaskContent, setNewSubTaskContent] = useState("");
   const [isCompleted, setIsCompleted] = useState(todo.completed);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleAddSubTask = () => {
     setIsAddingSubTask(true);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const handleSubTaskCancel = () => {
@@ -120,11 +124,13 @@ export default function TodoItem({
       </div>
 
       {isAddingSubTask && (
-        <div
+        <form
+          onSubmit={handleSubTaskSubmit}
           className="flex items-center gap-2 mt-2 pl-4"
           style={{ paddingLeft: `${(todo.level + 1) * 24}px` }}
         >
           <input
+            ref={inputRef}
             type="text"
             value={newSubTaskContent}
             onChange={(e: Event) => setNewSubTaskContent((e.target as HTMLInputElement).value)}
@@ -133,7 +139,7 @@ export default function TodoItem({
             autoFocus
           />
           <button
-            onClick={handleSubTaskSubmit}
+            type="submit"
             className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             추가
@@ -144,7 +150,7 @@ export default function TodoItem({
           >
             취소
           </button>
-        </div>
+        </form>
       )}
     </div>
   );
