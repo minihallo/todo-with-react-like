@@ -3,8 +3,10 @@ import { ITodoItem } from "./types";
 const API_BASE = 'http://localhost:3000';
 
 export const todoApi = {
-  async fetchTodos(): Promise<ITodoItem[]> {
-    const response = await fetch(`${API_BASE}/todos`);
+  async fetchTodos(options?: { signal?: AbortSignal }): Promise<ITodoItem[]> {
+    const response = await fetch(`${API_BASE}/todos`, {
+      signal: options?.signal
+    });
     if (!response.ok) throw new Error('Failed to fetch todos');
     return response.json();
   },
@@ -19,19 +21,21 @@ export const todoApi = {
     return response.json();
   },
 
-  async updateTodo(id: number, updates: Partial<ITodoItem>): Promise<ITodoItem> {
+  async updateTodo(id: number, updates: Partial<ITodoItem>, options?: { signal?: AbortSignal }): Promise<ITodoItem> {
     const response = await fetch(`${API_BASE}/todos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
+      body: JSON.stringify(updates),
+      signal: options?.signal
     });
     if (!response.ok) throw new Error('Failed to update todo');
     return response.json();
   },
 
-  async deleteTodo(id: number): Promise<ITodoItem> {
+  async deleteTodo(id: number, options?: { signal?: AbortSignal }): Promise<ITodoItem> {
     const response = await fetch(`${API_BASE}/todos/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      signal: options?.signal
     });
     if (!response.ok) throw new Error('Failed to delete todo');
     return response.json();

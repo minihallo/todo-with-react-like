@@ -32,23 +32,18 @@ export default function TodoList() {
     fetchTodos();
   }, []);
 
-  const updateTodo = async (todoId: number, updates: Partial<ITodoItem>) => {
-    try {
-      const updatedTodo = await todoApi.updateTodo(todoId, updates);
-      const index = idToIndex.get(todoId);
+  const updateTodo = async (updatedTodo: ITodoItem) => {
+    const index = idToIndex.get(updatedTodo.id);
 
-      if (index !== undefined) {
-        const newTodos = [...todos];
-        newTodos[index] = { ...newTodos[index], ...updatedTodo };
+    if (index !== undefined) {
+      const newTodos = [...todos];
+      newTodos[index] = { ...newTodos[index], ...updatedTodo };
 
-        const newMap = new Map();
-        newTodos.forEach((todo, idx) => newMap.set(todo.id, idx));
+      const newMap = new Map();
+      newTodos.forEach((todo, idx) => newMap.set(todo.id, idx));
 
-        setIdToIndex(newMap);
-        setTodos(newTodos);
-      }
-    } catch (err) {
-      // error handling
+      setIdToIndex(newMap);
+      setTodos(newTodos);
     }
   };
 
@@ -74,7 +69,7 @@ export default function TodoList() {
       window.removeEventListener("resize", updateContainerHeight);
     };
   }, []);
-  
+
   // if (isLoading) return <div>Loading...</div>;
   // if (error) return <div className="text-red-500">Error: {error}</div>;
 

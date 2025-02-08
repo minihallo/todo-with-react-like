@@ -7,7 +7,7 @@ interface TodoItemProps {
   todo: ITreeTodoItem;
   expandedItems: Set<number>;
   onToggleExpand: () => void;
-  onUpdateTodo: (todoId: number, updates: Partial<ITodoItem>) => Promise<void>;
+  onUpdateTodo: (updatedTodo: ITodoItem) => Promise<void>;
 }
 
 export default function TodoItem({
@@ -17,11 +17,14 @@ export default function TodoItem({
   expandedItems,
 }: TodoItemProps) {
   const [todos, setTodos] = useGlobalState<ITodoItem[]>("todos", []);
-  // const [error, setError] = useGlobalState<string | null>("error", null);
+  
+  const [isLoading, setIsLoading] = useState(false);
   const [isAddingSubTask, setIsAddingSubTask] = useState(false);
   const [newSubTaskContent, setNewSubTaskContent] = useState("");
   const [isCompleted, setIsCompleted] = useState(todo.completed);
+  
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const currentRequest = useRef<AbortController | null>(null);
 
   const handleAddSubTask = () => {
     setIsAddingSubTask(true);
@@ -37,9 +40,10 @@ export default function TodoItem({
 
   const handleSubTaskSubmit = async (e: Event) => {
     e.preventDefault();
-    if (!newSubTaskContent.trim()) return;
+    if (!newSubTaskContent.trim() || isLoading) return;
 
     try {
+      setIsLoading(true);
       const newSubTodo = await todoApi.addTodo(newSubTaskContent, todo.id);
       setTodos([...todos, newSubTodo]);
       setNewSubTaskContent("");
@@ -48,26 +52,51 @@ export default function TodoItem({
         onToggleExpand();
       }
     } catch (err) {
-      // setError(err instanceof Error ? err.message : "Unknown error occurred");
+      setIsAddingSubTask(true); // 실패했을 때는 입력 폼 유지
+      alert("하위작업 추가 중 오류가 발생했습니다");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleToggle = async (e: Event) => {
+    if (isLoading) return;
     try {
-      const updatedTodo = await todoApi.updateTodo(todo.id, {
-        completed: !isCompleted,
-      });
+      if (currentRequest.current) {
+        currentRequest.current.abort();
+      }
+
+      currentRequest.current = new AbortController();
+      setIsLoading(true);
+
+      const updatedTodo = await todoApi.updateTodo(
+        todo.id, 
+        { completed: !isCompleted },
+        { signal: currentRequest.current.signal }
+      );
+      
       setIsCompleted(updatedTodo.completed);
-      onUpdateTodo(todo.id, {
-        completed: !isCompleted,
-      });
+      onUpdateTodo(updatedTodo);
     } catch (err) {
-      // setError(err instanceof Error ? err.message : "Unknown error occurred");
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+    } finally {
+      setIsLoading(false);
+      currentRequest.current = null;
     }
   };
 
   const handleDelete = async (e: Event) => {
+    if (isLoading) return;
+
     try {
+      if (currentRequest.current) {
+        currentRequest.current.abort();
+      }
+      currentRequest.current = new AbortController();
+      setIsLoading(true);
+
       const getDeleteIds = (todoId: number): number[] => {
         const ids: number[] = [todoId];
         const findChildren = (parentId: number) => {
@@ -87,7 +116,12 @@ export default function TodoItem({
       await Promise.all(deleteIds.map((id) => todoApi.deleteTodo(id)));
       setTodos(todos.filter((t) => !deleteIds.includes(t.id)));
     } catch (err) {
-      // setError(err instanceof Error ? err.message : "Unknown error occurred");
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+    } finally {
+      setIsLoading(false);
+      currentRequest.current = null;
     }
   };
 

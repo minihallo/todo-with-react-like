@@ -5,18 +5,21 @@ import { ITodoItem } from "../types";
 export default function TodoForm() {
   const [content, setContent] = useState('');
   const [todos, setTodos] = useGlobalState<ITodoItem[]>('todos', []);
-  const [error, setError] = useGlobalState<string | null>('error', null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() || isLoading) return;
 
     try {
+      setIsLoading(true);
       const newTodo = await todoApi.addTodo(content, null);
       setTodos([...todos, newTodo]);
       setContent('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      alert("작업 추가 중 오류가 발생했습니다");
+    } finally {
+      setIsLoading(false);
     }
   };
 
