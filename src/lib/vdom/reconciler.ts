@@ -3,11 +3,7 @@ import { Component, ComponentType } from "../component/types";
 import { resetHooksState } from "../hooks";
 import { VNode } from "./types";
 
-export function reconcile(
-  parentDom: HTMLElement,
-  oldVNode: VNode | null,
-  newVNode: VNode | null
-) {
+export function reconcile(parentDom: HTMLElement, oldVNode: VNode | null, newVNode: VNode | null) {
   if (!oldVNode && !newVNode) return;
 
   if (!oldVNode) {
@@ -23,10 +19,7 @@ export function reconcile(
   update(parentDom, oldVNode, newVNode);
 }
 
-function mountClassComponent(
-  parentDom: HTMLElement,
-  vnode: VNode
-): HTMLElement | Text {
+function mountClassComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
   const ComponentClass = vnode.type as ComponentType;
   const instance = new ComponentClass(vnode.props);
 
@@ -46,11 +39,7 @@ function mountClassComponent(
   return dom;
 }
 
-function updateClassComponent(
-  parentDom: HTMLElement,
-  oldVNode: VNode,
-  newVNode: VNode
-) {
+function updateClassComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
   const instance = oldVNode._instance;
 
   if (!instance) {
@@ -77,17 +66,10 @@ function updateClassComponent(
   }
 }
 
-function mountFunctionComponent(
-  parentDom: HTMLElement,
-  vnode: VNode
-): HTMLElement | Text {
+function mountFunctionComponent(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
   const componentFunction = vnode.type as Function;
 
-  const instance = ComponentInstance.createInstance(
-    componentFunction,
-    vnode.props,
-    parentDom
-  );
+  const instance = ComponentInstance.createInstance(componentFunction, vnode.props, parentDom);
 
   resetHooksState(instance);
 
@@ -101,16 +83,9 @@ function mountFunctionComponent(
   return dom;
 }
 
-function updateFunctionComponent(
-  parentDom: HTMLElement,
-  oldVNode: VNode,
-  newVNode: VNode
-) {
+function updateFunctionComponent(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
   const componentFunction = newVNode.type as Function;
-  const instance = ComponentInstance.getInstance(
-    componentFunction,
-    newVNode.props
-  );
+  const instance = ComponentInstance.getInstance(componentFunction, newVNode.props);
 
   if (!instance) {
     unmount(oldVNode);
@@ -165,7 +140,7 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
       } else if (name === "style" && typeof value === "object") {
         Object.entries(value).forEach(([styleName, styleValue]) => {
           (dom as HTMLElement).style.setProperty(
-            styleName.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`),
+            styleName.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`),
             String(styleValue)
           );
         });
@@ -177,8 +152,12 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
     vnode.children.forEach((child) => mount(dom as HTMLElement, child));
   }
 
-  if (vnode.ref && typeof vnode.ref === "function") {
-    vnode.ref(dom as HTMLElement);
+  if (vnode.ref) {
+    if (typeof vnode.ref === "function") {
+      vnode.ref(dom as HTMLElement);
+    } else if (typeof vnode.ref === "object") {
+      vnode.ref.current = dom as HTMLElement;
+    }
   }
 
   vnode._dom = dom;
@@ -190,7 +169,11 @@ function unmount(vnode: VNode) {
   if (!vnode._dom) return;
 
   if (vnode.ref) {
-    vnode.ref(null);
+    if (typeof vnode.ref === "function") {
+      vnode.ref(null);
+    } else if (typeof vnode.ref === "object") {
+      vnode.ref.current = null;
+    }
   }
 
   Object.entries(vnode.props).forEach(([name, value]) => {
@@ -200,9 +183,9 @@ function unmount(vnode: VNode) {
     } else if (name === "style" && vnode._dom) {
       const style = vnode.props.style;
       if (typeof style === "object") {
-        Object.keys(style).forEach(styleName => {
+        Object.keys(style).forEach((styleName) => {
           (vnode._dom as HTMLElement).style.removeProperty(
-            styleName.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
+            styleName.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
           );
         });
       }
@@ -243,10 +226,18 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
 
   if (oldVNode.ref !== newVNode.ref) {
     if (oldVNode.ref) {
-      oldVNode.ref(null);
+      if (typeof oldVNode.ref === "function") {
+        oldVNode.ref(null);
+      } else if (typeof oldVNode.ref === "object") {
+        oldVNode.ref.current = null;
+      }
     }
     if (newVNode.ref) {
-      newVNode.ref(dom);
+      if (typeof newVNode.ref === "function") {
+        newVNode.ref(dom as HTMLElement);
+      } else if (typeof newVNode.ref === "object") {
+        newVNode.ref.current = dom as HTMLElement;
+      }
     }
   }
 
@@ -270,7 +261,7 @@ function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
     } else if (name === "style" && typeof value === "object") {
       Object.entries(value).forEach(([styleName, styleValue]) => {
         (dom as HTMLElement).style.setProperty(
-          styleName.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`),
+          styleName.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`),
           String(styleValue)
         );
       });

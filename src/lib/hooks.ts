@@ -88,6 +88,24 @@ export function useEffect(callback: () => void | (() => void), deps?: any[]) {
   }
 }
 
+export function useRef<T>(initialValue: T): { current: T } {
+  if (!currentInstance) {
+    throw new Error("useRef must be used within a function component");
+  }
+
+  const index = currentIndex++;
+  const hooks = currentInstance.hooks;
+
+  if (!hooks[index]) {
+    hooks[index] = {
+      type: "ref",
+      value: { current: initialValue },
+    };
+  }
+
+  return hooks[index].value;
+}
+
 export function useMemo<T>(factory: () => T, deps: any[]): T {
   if (!currentInstance) {
     throw new Error("useMemo must be used within a function component");
