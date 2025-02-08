@@ -147,13 +147,13 @@ export default function TodoItem({
         <span className={isCompleted ? "line-through text-gray-500" : ""}>{todo.content}</span>
         <button
           onClick={handleAddSubTask}
-          className="ml-2 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+          className="ml-2 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded add-subtask-button"
         >
           + 하위작업 추가
         </button>
         <button
           onClick={handleDelete}
-          className="ml-auto p-1 text-red-500 hover:bg-red-50 rounded mr-4"
+          className="ml-auto p-1 text-red-500 hover:bg-red-50 rounded mr-4 delete-button"
         >
           🗑
         </button>
@@ -176,7 +176,7 @@ export default function TodoItem({
           />
           <button
             type="submit"
-            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 submit-subtask-button"
           >
             추가
           </button>
