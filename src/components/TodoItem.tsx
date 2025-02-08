@@ -44,7 +44,9 @@ export default function TodoItem({
       setTodos([...todos, newSubTodo]);
       setNewSubTaskContent("");
       setIsAddingSubTask(false);
-      onToggleExpand();
+      if (!expandedItems.has(todo.id)) {
+        onToggleExpand();
+      }
     } catch (err) {
       // setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
