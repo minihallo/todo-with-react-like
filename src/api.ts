@@ -21,7 +21,7 @@ export const todoApi = {
     return response.json();
   },
 
-  async updateTodo(id: number, updates: Partial<ITodoItem>, options?: { signal?: AbortSignal }): Promise<ITodoItem> {
+  async updateTodo(id: number, updates: Partial<ITodoItem>, options?: { signal?: AbortSignal }): Promise<Partial<ITodoItem>> {
     const response = await fetch(`${API_BASE}/todos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

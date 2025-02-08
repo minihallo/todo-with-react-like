@@ -82,18 +82,22 @@ app.patch('/todos/:id', (req, res) => {
     res.status(404).json({ error: 'Todo not found.' });
   }
 
+  const updatedFields: Partial<typeof todos[number]> = { id: todoId };
+
   if (typeof content === 'string') {
     todos[index].content = content;
+    updatedFields.content = content;
   }
   if (typeof completed === 'boolean') {
     todos[index].completed = completed;
+    updatedFields.completed = completed;
   }
   if (typeof parentId === 'number' || parentId === null) {
     todos[index].parentId = parentId;
+    updatedFields.parentId = parentId;
   }
 
-  // 부분 데이터만 내려줄 수도 있고, 여기서는 전체 항목을 내려줌
-  res.json(todos[index]);
+  res.json(updatedFields);
 });
 
 /**

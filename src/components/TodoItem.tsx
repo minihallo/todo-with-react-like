@@ -7,7 +7,7 @@ interface TodoItemProps {
   todo: ITreeTodoItem;
   expandedItems: Set<number>;
   onToggleExpand: () => void;
-  onUpdateTodo: (updatedTodo: ITodoItem) => Promise<void>;
+  onUpdateTodo: (todoId: number, updatedFields: Partial<ITodoItem>) => Promise<void>;
 }
 
 export default function TodoItem({
@@ -69,14 +69,14 @@ export default function TodoItem({
       currentRequest.current = new AbortController();
       setIsLoading(true);
 
-      const updatedTodo = await todoApi.updateTodo(
+      const updatedFields = await todoApi.updateTodo(
         todo.id, 
         { completed: !isCompleted },
         { signal: currentRequest.current.signal }
       );
       
-      setIsCompleted(updatedTodo.completed);
-      onUpdateTodo(updatedTodo);
+      setIsCompleted(updatedFields.completed ?? isCompleted);
+      onUpdateTodo(todo.id, updatedFields);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         return;

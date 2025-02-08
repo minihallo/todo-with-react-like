@@ -32,12 +32,12 @@ export default function TodoList() {
     fetchTodos();
   }, []);
 
-  const updateTodo = async (updatedTodo: ITodoItem) => {
-    const index = idToIndex.get(updatedTodo.id);
+  const updateTodo = async (todoId: number, updatedFields: Partial<ITodoItem>) => {
+    const index = idToIndex.get(todoId);
 
     if (index !== undefined) {
       const newTodos = [...todos];
-      newTodos[index] = { ...newTodos[index], ...updatedTodo };
+      newTodos[index] = { ...newTodos[index], ...updatedFields };
 
       const newMap = new Map();
       newTodos.forEach((todo, idx) => newMap.set(todo.id, idx));
