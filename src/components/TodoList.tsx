@@ -81,10 +81,6 @@ export default function TodoList() {
       style={{ height: `${containerHeight}px` }}
     >
       <div className="relative" style={{ height: `${totalHeight}px` }}>
-        <div className="fixed top-0 right-0 bg-black text-white p-2 z-50">
-          Rendered: {visibleItems.length} / Total: {treeData.length}
-        </div>
-
         <div className="absolute w-full" style={{ top: `${topPadding}px` }}>
           {visibleItems.map((todo) => (
             <TodoItem

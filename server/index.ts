@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 
 interface TodoItem {
   id: number;
@@ -15,6 +16,7 @@ let todos: TodoItem[] = [];
 // -----------------------------------------------------
 const app = express();
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 // -----------------------------------------------------
 // 2) 대량의 TODO 데이터 준비 (임시 인메모리 데이터)
