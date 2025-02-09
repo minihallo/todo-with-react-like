@@ -57,4 +57,14 @@ export class ComponentInstance {
       Object.assign(instance, updates);
     }
   }
+
+  static removeInstance(type: Function, props: any) {
+    const instanceKey = this.generateInstanceKey(type, props);
+    const instance = this.instances.get(instanceKey);
+    
+    if (instance) {
+      instance.hooks = [];
+      this.instances.delete(instanceKey);
+    }
+  }
 }

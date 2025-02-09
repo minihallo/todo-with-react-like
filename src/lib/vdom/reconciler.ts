@@ -168,6 +168,10 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
 function unmount(vnode: VNode) {
   if (!vnode._dom) return;
 
+  if (typeof vnode.type === "function") {
+    ComponentInstance.removeInstance(vnode.type, vnode.props);
+  }
+
   if (vnode.ref) {
     if (typeof vnode.ref === "function") {
       vnode.ref(null);
