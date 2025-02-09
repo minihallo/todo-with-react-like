@@ -7,7 +7,7 @@ interface TodoItemProps {
   todo: ITreeTodoItem;
   expandedItems: Set<number>;
   onToggleExpand: () => void;
-  onUpdateTodo: (todoId: number, updatedFields: Partial<ITodoItem>) => Promise<void>;
+  onUpdateTodo: (todoIds: number[], updatedFieldsMap: Record<number, Partial<ITodoItem>>) => Promise<void>;
 }
 
 export default function TodoItem({
@@ -21,7 +21,6 @@ export default function TodoItem({
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingSubTask, setIsAddingSubTask] = useState(false);
   const [newSubTaskContent, setNewSubTaskContent] = useState("");
-  const [isCompleted, setIsCompleted] = useState(todo.completed);
   
   const inputRef = useRef<HTMLInputElement | null>(null);
   const currentRequest = useRef<AbortController | null>(null);
@@ -69,14 +68,23 @@ export default function TodoItem({
       currentRequest.current = new AbortController();
       setIsLoading(true);
 
-      const updatedFields = await todoApi.updateTodo(
-        todo.id, 
-        { completed: !isCompleted },
-        { signal: currentRequest.current.signal }
+      const updatedTodos = await todoApi.updateTodo(
+        todo.id,
+        { completed: !todo.completed },
+        { 
+          signal: currentRequest.current.signal,
+          updateChildren: true
+        }
       );
       
-      setIsCompleted(updatedFields.completed ?? isCompleted);
-      onUpdateTodo(todo.id, updatedFields);
+      const updatedTodoMap = updatedTodos.reduce((acc, todo) => {
+        acc[todo.id] = todo;
+        return acc;
+      }, {} as Record<number, Partial<ITodoItem>>);
+
+      const updatedIds = updatedTodos.map((todo: ITodoItem) => todo.id);
+
+      onUpdateTodo(updatedIds, updatedTodoMap);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         return;
@@ -97,24 +105,13 @@ export default function TodoItem({
       currentRequest.current = new AbortController();
       setIsLoading(true);
 
-      const getDeleteIds = (todoId: number): number[] => {
-        const ids: number[] = [todoId];
-        const findChildren = (parentId: number) => {
-          const children = todos.filter((t) => t.parentId === parentId);
-          children.forEach((child) => {
-            ids.push(child.id);
-            findChildren(child.id);
-          });
-        };
+      const deletedItems = await todoApi.deleteTodo(
+        todo.id, 
+        { signal: currentRequest.current.signal }
+      );
 
-        findChildren(todoId);
-        return ids;
-      };
-
-      const deleteIds = getDeleteIds(todo.id);
-
-      await Promise.all(deleteIds.map((id) => todoApi.deleteTodo(id)));
-      setTodos(todos.filter((t) => !deleteIds.includes(t.id)));
+      const deletedIds = deletedItems.map(item => item.id);
+      setTodos(todos.filter(t => !deletedIds.includes(t.id)));
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         return;
@@ -143,8 +140,8 @@ export default function TodoItem({
             </button>
           )}
         </div>
-        <input type="checkbox" checked={isCompleted} onChange={handleToggle} className="w-4 h-4" />
-        <span className={isCompleted ? "line-through text-gray-500" : ""}>{todo.content}</span>
+        <input type="checkbox" checked={todo.completed} onChange={handleToggle} className="w-4 h-4" />
+        <span className={todo.completed ? "line-through text-gray-500" : ""}>{todo.content}</span>
         <button
           onClick={handleAddSubTask}
           className="ml-2 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded add-subtask-button"

@@ -9,7 +9,6 @@ const PADDING_OFFSET = 24; // Tailwind p-6 (24px)
 
 export default function TodoList() {
   const [todos, setTodos] = useGlobalState<ITodoItem[]>("todos", []);
-  const [idToIndex, setIdToIndex] = useState(new Map());
   const [containerHeight, setContainerHeight] = useState(window.innerHeight);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -22,29 +21,23 @@ export default function TodoList() {
         const map = new Map();
         fetchedTodos.forEach((todo, index) => map.set(todo.id, index));
 
-        setIdToIndex(map);
         setTodos(fetchedTodos);
       } catch (err) {
-        // error handling
+        console.error('Todo 목록 조회 실패:', err);
       }
     };
 
     fetchTodos();
   }, []);
 
-  const updateTodo = async (todoId: number, updatedFields: Partial<ITodoItem>) => {
-    const index = idToIndex.get(todoId);
-
-    if (index !== undefined) {
-      const newTodos = [...todos];
-      newTodos[index] = { ...newTodos[index], ...updatedFields };
-
-      const newMap = new Map();
-      newTodos.forEach((todo, idx) => newMap.set(todo.id, idx));
-
-      setIdToIndex(newMap);
-      setTodos(newTodos);
-    }
+  const updateTodo = async (todoIds: number[], updatedFieldsMap: Record<number, Partial<ITodoItem>>) => {
+    const newTodos = todos.map(todo => {
+      if (todoIds.includes(todo.id)) {
+        return { ...todo, ...updatedFieldsMap[todo.id] };
+      }
+      return todo;
+    });
+    setTodos(newTodos);
   };
 
   const treeData = useMemo<ITreeTodoItem[]>(() => convertToTree(todos), [todos]);
@@ -69,9 +62,6 @@ export default function TodoList() {
       window.removeEventListener("resize", updateContainerHeight);
     };
   }, []);
-
-  // if (isLoading) return <div>Loading...</div>;
-  // if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
     <div
