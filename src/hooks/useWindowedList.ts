@@ -3,6 +3,7 @@ import { ITreeTodoItem } from "../types";
 
 const useExpandedItems = (items: ITreeTodoItem[]) => {
   const [expandedItems, setExpandedItems] = useGlobalState<Set<number>>("expandedItems", new Set());
+  const isInitializedRef = useRef(false);
 
   const findItemInTree = (items: ITreeTodoItem[], targetId: number): ITreeTodoItem | null => {
     for (const item of items) {
@@ -26,17 +27,27 @@ const useExpandedItems = (items: ITreeTodoItem[]) => {
     }
   };
 
-  const initializeIfEmpty = (items: ITreeTodoItem[]) => {
-    if (expandedItems.size === 0) {
-      const rootIds = items.filter((item) => !item.parentId).map((item) => item.id);
-      setExpandedItems(new Set(rootIds));
+  useEffect(() => {
+    if (items.length > 0 && !isInitializedRef.current) {
+      const getAllItemIds = (items: ITreeTodoItem[]): number[] => {
+        return items.reduce((ids: number[], item) => {
+          ids.push(item.id);
+          if (item.children && item.children.length > 0) {
+            ids.push(...getAllItemIds(item.children));
+          }
+          return ids;
+        }, []);
+      };
+
+      const allIds = getAllItemIds(items);
+      setExpandedItems(new Set(allIds));
+      isInitializedRef.current = true;
     }
-  };
+  }, [items.length]);
 
   return {
     expandedItems,
     toggleExpanded,
-    initializeIfEmpty,
   };
 };
 
@@ -45,13 +56,9 @@ export function useWindowedList(
   itemHeight: number,
   containerHeight: number
 ) {
-  const { expandedItems, toggleExpanded, initializeIfEmpty } = useExpandedItems(items);
+  const { expandedItems, toggleExpanded } = useExpandedItems(items);
   const [scrollTop, setScrollTop] = useState(0);
   const skipNextScrollRef = useRef(false);
-
-  useEffect(() => {
-    initializeIfEmpty(items);
-  }, []);
 
   const flattenedItems = useMemo(() => {
     const result: Array<{
