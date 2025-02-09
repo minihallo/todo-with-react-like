@@ -32,6 +32,7 @@ export const todoApi = {
       body: JSON.stringify({ ...fields, updateChildren: options?.updateChildren }),
       signal: options?.signal,
     });
+    if (!response.ok) throw new Error("Failed to update todo");
     return response.json();
   },
 

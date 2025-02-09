@@ -1,19 +1,46 @@
-# 프로젝트 개요 및 기본 정보.
+# React-like Todo Application
 
-서버 실행 방법 : npx tsx server/index.ts
-앱 실행 방법 : npm run dev
+자체 구현한 React-like 라이브러리를 기반으로 만든 Todo 애플리케이션입니다. Virtual DOM, Component 시스템, Hooks API, 가상화 로직을 직접 구현했습니다.
 
-# 모든 테스트 실행
+## 주요 기능
+
+- Todo 항목 생성, 조회, 수정, 삭제 (CRUD)
+- Virtual DOM 기반 효율적인 렌더링
+- React-like Hooks API (useState, useEffect 등)
+- 전역 상태 관리 시스템
+- 타입스크립트 기반 타입 안정성
+- 가상화(Virtualization) 구현 - useWindowedList 커스텀 훅으로 대량의 Todo 항목도 효율적으로 렌더링
+
+## 기술 스택
+
+- TypeScript
+- Express (백엔드)
+- Vite (빌드 도구)
+- Tailwind CSS (스타일링)
+- Vitest (테스팅 도구)
+
+## 시작하기
+
+### 설치
+
+```bash
+npm install
+```
+
+### 백엔드 서버 실행
+
+```bash
+npx tsx server/index.ts
+```
+
+### 프론트엔드 개발 서버 실행
+
+```bash
+npm run dev
+```
+
+### 테스트
+
+```bash
 npm test
-
-# 테스트를 감시 모드로 실행 (파일 변경시 자동 재실행)
-npm run test:watch
-
-# 커버리지 리포트와 함께 테스트 실행
-npm run test:coverage
-
-# treeUtils.test.ts 파일만 테스트
-npm test tests/unit/utils/treeUtils.test.ts
-
-# 파일명에 tree가 포함된 모든 테스트 실행
-npm test tree
+```
