@@ -8,6 +8,7 @@ interface TodoItemProps {
   expandedItems: Set<number>;
   onToggleExpand: () => void;
   onUpdateTodo: (todoIds: number[], updatedFieldsMap: Record<number, Partial<ITodoItem>>) => Promise<void>;
+  onItemAdded: (id: number) => void;
 }
 
 export default function TodoItem({
@@ -15,6 +16,7 @@ export default function TodoItem({
   onToggleExpand,
   onUpdateTodo,
   expandedItems,
+  onItemAdded
 }: TodoItemProps) {
   const [todos, setTodos] = useGlobalState<ITodoItem[]>("todos", []);
   
@@ -50,6 +52,7 @@ export default function TodoItem({
       if (!expandedItems.has(todo.id)) {
         onToggleExpand();
       }
+      onItemAdded(newSubTodo.id);
     } catch (err) {
       setIsAddingSubTask(true); // 실패했을 때는 입력 폼 유지
       alert("하위작업 추가 중 오류가 발생했습니다");

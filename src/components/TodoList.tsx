@@ -12,6 +12,8 @@ export default function TodoList() {
   const [containerHeight, setContainerHeight] = useState(window.innerHeight);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollRef = useRef<number | null>(null);
+  const prevTodosLengthRef = useRef(todos.length);
 
   useEffect(() => {
     const fetchTodos = async () => {
@@ -44,8 +46,35 @@ export default function TodoList() {
 
   const itemHeight = 40;
 
-  const { visibleItems, onScroll, topPadding, totalHeight, toggleExpanded, expandedItems } =
-    useWindowedList(treeData, itemHeight, containerHeight);
+  const { visibleItems, onScroll, topPadding, totalHeight, toggleExpanded, expandedItems, scrollToIndex,
+    findIndexById, scrollToBottom } =
+    useWindowedList(treeData, itemHeight, containerHeight, containerRef);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // 하위 작업 추가시
+    if (pendingScrollRef.current !== null) {
+      const index = findIndexById(pendingScrollRef.current);
+      if (index !== -1) {
+        scrollToIndex(index);
+        pendingScrollRef.current = null;
+      }
+    }
+    // 새 작업 추가시
+    else if (prevTodosLengthRef.current && todos.length > prevTodosLengthRef.current) {
+      const lastTodo = todos[todos.length - 1];
+      const index = findIndexById(lastTodo.id);
+      if (index !== -1) {
+        scrollToBottom();
+      }
+    }
+    prevTodosLengthRef.current = todos.length;
+  }, [todos]);
+
+  const onSubItemAdded = (id: number) => {
+    pendingScrollRef.current = id;
+  }
 
   useEffect(() => {
     const updateContainerHeight = () => {
@@ -79,6 +108,7 @@ export default function TodoList() {
               onToggleExpand={() => toggleExpanded(todo.id)}
               onUpdateTodo={updateTodo}
               expandedItems={expandedItems}
+              onItemAdded={onSubItemAdded}
             />
           ))}
         </div>
