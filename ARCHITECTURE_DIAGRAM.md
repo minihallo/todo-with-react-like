@@ -37,7 +37,7 @@
     ├── ISSUE_IMPROVEMENTS.md
     ├── README.md
     ├── USE_AI.md
-    │
+    ├── PERFORMANCE_REVIEW.md
     ├── package.json
     │
     └── etc setting files (vite, tailwind, postcss, ts ...)
@@ -56,7 +56,7 @@ reconciler.ts: 이전/현재 가상 DOM을 비교하고 실제 DOM 업데이트 
 
 ## 상태 관리 및 Hooks
 globalState.ts: 애플리케이션 전역 상태 관리
-hooks.ts: useState, useEffect, useMemo, useGlobalState Hooks 시스템 구현
+hooks.ts: useState, useEffect, useMemo, useRef, useGlobalState Hooks 시스템 구현
 
 ## 타입 시스템
 jsx.d.ts: TypeScript에서 JSX 문법 사용을 위한 타입 정의
