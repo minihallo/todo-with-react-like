@@ -1,5 +1,4 @@
 import App from "./App";
-import AppForGlobalState from "./AppForGlobalState";
 import "./index.css";
 import { render, createElement } from "./lib";
 
