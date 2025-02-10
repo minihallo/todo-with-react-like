@@ -41,25 +41,6 @@ class GlobalState {
     affectedListeners.forEach(listener => listener());
   }
 
-  private shouldUpdate(oldValue: any, newValue: any): boolean {
-    if (oldValue === newValue) return false;
-    if (Array.isArray(oldValue) && Array.isArray(newValue)) {
-      return JSON.stringify(oldValue) !== JSON.stringify(newValue);
-    }
-    return true;
-  }
-
-  private notifyListeners(key: string) {
-    const listeners = this.listeners.get(key);
-    if (listeners) {
-      Promise.resolve().then(() => {
-        listeners.forEach(listener => {
-          listener();
-        });
-      });
-    }
-  }
-
   getState(key: string) {
     return this.store.get(key);
   }

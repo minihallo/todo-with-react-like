@@ -7,6 +7,7 @@ export interface FunctionComponentInstance {
   _vnode: VNode | null;
   hooks: any[];
   _instanceKey: string;
+  _isRemoved: boolean;
 }
 export class ComponentInstance {
   private static instanceCounter = 0;
@@ -35,6 +36,7 @@ export class ComponentInstance {
       _vnode: null,
       hooks: [],
       _instanceKey: instanceKey, // 인스턴스 키 저장
+      _isRemoved: false
     };
     
     this.instances.set(instanceKey, instance);
@@ -57,14 +59,24 @@ export class ComponentInstance {
       Object.assign(instance, updates);
     }
   }
-
   static removeInstance(type: Function, props: any) {
     const instanceKey = this.generateInstanceKey(type, props);
     const instance = this.instances.get(instanceKey);
     
     if (instance) {
-      instance.hooks = [];
-      this.instances.delete(instanceKey);
+      if (instance._isRemoved) return;
+      instance._isRemoved = true;
+      
+      Promise.resolve().then(() => {
+        if (instance._isRemoved) {
+          instance.hooks = [];
+          this.instances.delete(instanceKey);
+        }
+      });
     }
+  }
+
+  static isInstanceRemoved(instance: FunctionComponentInstance): boolean {
+    return instance._isRemoved === true;
   }
 }

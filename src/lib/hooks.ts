@@ -1,4 +1,4 @@
-import { FunctionComponentInstance } from "./component/instance";
+import { ComponentInstance, FunctionComponentInstance } from "./component/instance";
 import { globalState } from "./globalState";
 import { reconcile } from "./vdom/reconciler";
 
@@ -44,6 +44,10 @@ export function useState<T>(
   }
 
   const setState = (newValue: T | ((prev: T) => T)) => {
+    if (ComponentInstance.isInstanceRemoved(instance)) {
+      return;
+    }
+    
     const hooks = instance.hooks;
     const prevValue = hooks[index].value;
 
@@ -133,20 +137,31 @@ export function useGlobalState<T>(
     throw new Error("useGlobalState must be used within a function component");
   }
 
+  const instance = currentInstance; // 현재 인스턴스 캡처
   const value = globalState.getState(key) ?? initialValue;
 
   const [, forceUpdate] = useState({});
 
   useEffect(() => {
+    if (ComponentInstance.isInstanceRemoved(instance)) {
+      return;
+    }
+
     const unsubscribe = globalState.subscribe(key, () => {
-      forceUpdate({});
+      if (!ComponentInstance.isInstanceRemoved(instance)) {
+        forceUpdate({});
+      }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [key]);
 
   const updateState = (newValue: T) => {
-    globalState.setState(key, newValue);
+    if (!ComponentInstance.isInstanceRemoved(instance)) {
+      globalState.setState(key, newValue);
+    }
   };
 
   return [value, updateState];

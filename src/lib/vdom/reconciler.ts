@@ -168,18 +168,6 @@ function mount(parentDom: HTMLElement, vnode: VNode): HTMLElement | Text {
 function unmount(vnode: VNode) {
   if (!vnode._dom) return;
 
-  if (typeof vnode.type === "function") {
-    ComponentInstance.removeInstance(vnode.type, vnode.props);
-  }
-
-  if (vnode.ref) {
-    if (typeof vnode.ref === "function") {
-      vnode.ref(null);
-    } else if (typeof vnode.ref === "object") {
-      vnode.ref.current = null;
-    }
-  }
-
   Object.entries(vnode.props).forEach(([name, value]) => {
     if (name.startsWith("on")) {
       const eventType = name.toLowerCase().substring(2);
@@ -199,6 +187,18 @@ function unmount(vnode: VNode) {
   vnode.children.forEach(unmount);
 
   vnode._dom.parentNode?.removeChild(vnode._dom);
+
+  if (typeof vnode.type === "function") {
+    ComponentInstance.removeInstance(vnode.type, vnode.props);
+  }
+
+  if (vnode.ref) {
+    if (typeof vnode.ref === "function") {
+      vnode.ref(null);
+    } else if (typeof vnode.ref === "object") {
+      vnode.ref.current = null;
+    }
+  }
 }
 
 function update(parentDom: HTMLElement, oldVNode: VNode, newVNode: VNode) {
